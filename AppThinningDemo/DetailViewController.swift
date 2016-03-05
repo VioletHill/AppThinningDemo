@@ -27,6 +27,11 @@ class DetailViewController: UIViewController {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
+    
+    override func viewDidDisappear(animated: Bool) {
+        super.viewDidDisappear(animated)
+        request?.endAccessingResources()
+    }
 }
 
 // MARK: - Action
@@ -36,19 +41,27 @@ extension DetailViewController {
     @IBAction func downloadButtonTouchUpInside(sender: UIButton) {
         if let imageTag = imageTag {
             request = NSBundleResourceRequest(tags: [imageTag])
-            request?.beginAccessingResourcesWithCompletionHandler({ (error) -> Void in
-                guard error == nil else {
-                    print(error)
-                    return
+            request?.conditionallyBeginAccessingResourcesWithCompletionHandler({ (isDownload) -> Void in
+                if isDownload {
+                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                        if let imageName = self.imageName {
+                            self.imageView.image = UIImage(named: imageName)
+                        }
+                    })
+                } else {
+                    self.request?.beginAccessingResourcesWithCompletionHandler({ (error) -> Void in
+                        guard error == nil else {
+                            print(error)
+                            return
+                        }
+                        dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                            if let imageName = self.imageName {
+                                self.imageView.image = UIImage(named: imageName)
+                            }
+                        })
+                    })
                 }
-                dispatch_async(dispatch_get_main_queue(), { () -> Void in
-                    if let imageName = self.imageName {
-                        self.imageView.image = UIImage(named: imageName)
-                    }
-                })
             })
         }
-        
-        
     }
 }
